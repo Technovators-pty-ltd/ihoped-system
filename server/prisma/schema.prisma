@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id               String   @id @default(cuid())
+  accountId        String   @unique
+  username         String?  @unique
+  firstName        String
+  surname          String
+  email            String   @unique
+  idNumber         String   @unique
+  passwordHash     String
+  phone            String?
+  address          String?
+  province         String?
+  municipality     String?
+  maritalStatus    String?
+  employmentStatus String?
+  active           Boolean  @default(true)
+  notifyEmail      Boolean  @default(true)
+  notifyInApp      Boolean  @default(true)
+  registeredAt     DateTime @default(now())
+
+  applications HousingApplication[]
+  documents    UploadedDocument[]
+}
+
+model Admin {
+  id                 String   @id @default(cuid())
+  username           String   @unique
+  fullName           String
+  email              String   @unique
+  passwordHash       String
+  mustChangePassword Boolean  @default(false)
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+
+  assignedApplications HousingApplication[] @relation("AssignedAdmin")
+}
+
+model HousingApplication {
+  id                       String    @id @default(cuid())
+  referenceNumber          String    @unique
+  clientId                 String
+  preferredProvince        String    @default("")
+  preferredMunicipality    String    @default("")
+  currentHousingSituation  String    @default("")
+  reason                   String    @default("")
+  status                   String    @default("Awaiting Documents")
+  assignedAdminId          String?
+  submittedAt              DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  consentAccepted          Boolean   @default(false)
+  rejectionReason          String?
+  internalNotesJson        String    @default("[]")
+
+  client        Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assignedAdmin Admin?               @relation("AssignedAdmin", fields: [assignedAdminId], references: [id])
+  statusHistory StatusHistory[]
+  documents     UploadedDocument[]
+}
+
+model StatusHistory {
+  id            String   @id @default(cuid())
+  applicationId String
+  status        String
+  note          String?
+  changedBy     String
+  changedByRole String
+  createdAt     DateTime @default(now())
+
+  application HousingApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model DocumentCategory {
+  id                     String  @id @default(cuid())
+  title                  String
+  description            String
+  mandatory              Boolean @default(false)
+  optional               Boolean @default(true)
+  enabled                Boolean @default(true)
+  certificationRequired  Boolean @default(false)
+  conditionJson          String?
+
+  documents UploadedDocument[]
+}
+
+model UploadedDocument {
+  id            String   @id @default(cuid())
+  clientId      String
+  applicationId String?
+  categoryId    String
+  fileName      String
+  fileType      String
+  fileSize      Int
+  storagePath   String
+  status        String   @default("Uploaded")
+  uploadedAt    DateTime @default(now())
+  reviewNote    String?
+
+  client      Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  application HousingApplication? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  category    DocumentCategory    @relation(fields: [categoryId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  userRole  String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  type      String   @default("info")
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  actorName String
+  actorRole String
+  action    String
+  details   String
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model SystemSetting {
+  id                  Int     @id @default(1)
+  allowRegistration   Boolean @default(true)
+  emailNotifications  Boolean @default(true)
+  maxUploadMb         Int     @default(5)
+  maintenanceMode     Boolean @default(false)
+  privacyNotice       String
+}
+
+model LoginAttempt {
+  id          String   @id @default(cuid())
+  attemptKey  String   @unique
+  count       Int      @default(0)
+  lockedUntil DateTime?
+}

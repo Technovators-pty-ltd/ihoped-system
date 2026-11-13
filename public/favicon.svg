@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="IHOPED">
+  <rect width="64" height="64" rx="14" fill="#0c2240"/>
+  <text
+    x="30"
+    y="42"
+    text-anchor="middle"
+    font-family="Arial Black, Arial, Helvetica, sans-serif"
+    font-size="26"
+    font-weight="700"
+    letter-spacing="1"
+    fill="#ffffff"
+  >IH</text>
+  <circle cx="48" cy="42" r="4.5" fill="#f4a21f"/>
+</svg>
