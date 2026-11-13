@@ -3,11 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "vite",
     "dev:server": "npm --prefix server run dev",
     "dev:all": "npm --prefix server run dev",
     "build": "tsc -b && vite build",
+    "test": "tsc -b --pretty false",
     "lint": "oxlint",
     "preview": "vite preview",
     "db:setup": "npm --prefix server run db:setup"
