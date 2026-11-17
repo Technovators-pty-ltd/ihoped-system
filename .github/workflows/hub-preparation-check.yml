@@ -1,0 +1,50 @@
+name: Hub isolated preparation
+on:
+  push:
+    branches: ['hub/pi-*/**']
+permissions:
+  contents: read
+  checks: write
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare pinned verifier dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/hub-verifier"
+          "$RUNNER_TEMP/hub-verifier/bin/python" -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r .hub-evaluation/requirements.txt
+      - name: Independently test, build, scan and check the exact candidate
+        if: ${{ !contains(github.ref_name, '/resolve-') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/hub-verifier/bin/python" .hub-evaluation/runner.py
+      - name: Resolve only approved dependency lockfiles in isolated containers
+        if: ${{ contains(github.ref_name, '/resolve-') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/hub-verifier/bin/python" .hub-evaluation/resolve.py
+      - name: Retain a bound raw resolution report without archive extraction
+        if: ${{ always() && contains(github.ref_name, '/resolve-') }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          path: ${{ runner.temp }}/hub-resolution-${{ github.run_id }}-${{ github.run_attempt }}.json
+          archive: false
+          if-no-files-found: error
+          retention-days: 1
+      - name: Publish bound proof without exposing a token to application containers
+        if: ${{ always() && !contains(github.ref_name, '/resolve-') }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/hub-verifier/bin/python" .hub-evaluation/runner.py --publish
